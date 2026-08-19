@@ -2,15 +2,115 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#070709" />
-  <title>Packet — Trip money</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="radar.css" />
+  <title>Packet — The gap</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070709;
+      --card: #14141a;
+      --line: rgba(255,255,255,.08);
+      --text: #f4f4f6;
+      --muted: #9a9aa6;
+      --dim: #6c6c78;
+      --mint: #5eead4;
+      --gold: #f5d07a;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+      font-family: "SF Pro Display", Inter, system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100dvh; color: var(--text); background:
+        radial-gradient(900px 420px at 10% -10%, rgba(94,234,212,.12), transparent 50%),
+        radial-gradient(700px 360px at 110% 0%, rgba(245,208,122,.08), transparent 45%),
+        var(--bg);
+    }
+    .app { max-width: 430px; margin: 0 auto; min-height: 100dvh; padding: calc(16px + var(--safe-t)) 16px calc(24px + var(--safe-b)); }
+    .kicker { font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; color: var(--mint); font-weight: 700; }
+    h1 { font-size: 1.7rem; letter-spacing: -.04em; margin: 8px 0 6px; }
+    .lead { color: var(--muted); font-size: .95rem; line-height: 1.45; margin-bottom: 22px; }
+    label { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin: 14px 0 6px; }
+    input, select { width: 100%; background: #101014; border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; color: var(--text); font: inherit; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn { width: 100%; height: 52px; border: 0; border-radius: 16px; font: inherit; font-weight: 700; margin-top: 20px; cursor: pointer; }
+    .btn-main { background: linear-gradient(180deg, #5eead4, #2dd4bf); color: #042f2e; }
+    .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); margin-top: 10px; }
+    .clock { border-radius: 24px; padding: 20px; background: linear-gradient(165deg, #18242c, #101014); border: 1px solid rgba(94,234,212,.2); margin-bottom: 16px; }
+    .clock em { font-style: normal; font-size: 2.4rem; letter-spacing: -.05em; display: block; margin: 6px 0 4px; }
+    .path { display: flex; flex-direction: column; gap: 10px; }
+    .card { text-align: left; width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; color: inherit; }
+    .card .step { font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+    .card h3 { font-size: 1.05rem; margin: 6px 0 4px; }
+    .card p { color: var(--muted); font-size: .84rem; }
+    .meta { display: flex; gap: 10px; margin-top: 10px; font-size: .78rem; color: var(--dim); }
+    .price { color: var(--mint); font-weight: 700; }
+    a.card { text-decoration: none; display: block; }
+    .hint { margin-top: 16px; color: var(--dim); font-size: .8rem; }
+  </style>
 </head>
 <body>
-  <div id="app" class="app"></div>
-  <script src="parse.js"></script>
-  <script src="app.js"></script>
+  <div class="app" id="app"></div>
+  <script>
+  const PLACES = {
+    MIA: {
+      name: 'Miami (MIA)',
+      bags: [{ title: 'Bounce locker \u2014 arrivals', mins: 12, price: '$8+', note: 'Closest bag drop to most terminals.', url: 'https://bounce.com/luggagestorage' }],
+      shower: [{ title: 'Lounge shower / day pass', mins: 18, price: 'Day pass', note: 'Fastest wash after a redeye.', url: 'https://www.miami-airport.com' }],
+      sit: [{ title: 'Quiet gate or lounge', mins: 8, price: 'Pass / walk-up', note: 'Stay inside if you are exhausted.', url: 'https://www.miami-airport.com' }]
+    },
+    MCO: {
+      name: 'Orlando (MCO)',
+      bags: [{ title: 'Luggage storage near Terminal C', mins: 10, price: '$7+', note: 'Drop bags before you leave the airport.', url: 'https://www.orlandoairports.net' }],
+      shower: [{ title: 'Terminal lounge shower', mins: 15, price: 'Day pass', note: 'Best if you do not want a taxi yet.', url: 'https://www.orlandoairports.net' }],
+      sit: [{ title: 'Hyatt Regency lobby (airport)', mins: 8, price: 'Free sit', note: 'AC, outlets, bathrooms.', url: 'https://maps.apple.com/?q=Hyatt%20Regency%20Orlando%20Airport' }]
+    },
+    JFK: {
+      name: 'New York (JFK)',
+      bags: [{ title: 'Terminal locker / Bounce', mins: 15, price: '$10+', note: 'Do not take bags into the city for a short gap.', url: 'https://www.jfkairport.com' }],
+      shower: [{ title: 'TWA Hotel day room', mins: 12, price: '$', note: 'The actual move if you landed T4/T5.', url: 'https://www.twahotel.com' }],
+      sit: [{ title: 'TWA Hotel lobby', mins: 12, price: 'Free\u2013$', note: 'Stay on airport grounds.', url: 'https://www.twahotel.com' }]
+    }
+  };
+  const state = { step: 'setup', airport: 'MIA', land: defaultLand(), checkin: defaultCheckin() };
+  function defaultLand() { const d = new Date(); d.setMinutes(0,0,0); return toLocal(d); }
+  function defaultCheckin() { const d = new Date(); d.setHours(15,0,0,0); if (d < new Date()) d.setDate(d.getDate()+1); return toLocal(d); }
+  function toLocal(d) { const p = n => String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+  function esc(s) { return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"'); }
+  function remaining() {
+    const a = Date.parse(state.land); const b = Date.parse(state.checkin);
+    if (isNaN(a) || isNaN(b)) return null;
+    return b - Math.max(Date.now(), a);
+  }
+  function fmt(ms) {
+    if (ms == null) return '\u2014';
+    if (ms <= 0) return 'You can check in now';
+    return Math.floor(ms/3600000) + 'h ' + Math.floor((ms%3600000)/60000) + 'm';
+  }
+  function card(step, item) {
+    const inner = '<div class="step">' + esc(step) + '</div><h3>' + esc(item.title) + '</h3><p>' + esc(item.note) + '</p><div class="meta"><span>' + item.mins + ' min</span><span class="price">' + esc(item.price) + '</span></div>';
+    return item.url ? '<a class="card" href="' + esc(item.url) + '" target="_blank" rel="noopener">' + inner + '</a>' : '<div class="card">' + inner + '</div>';
+  }
+  function renderSetup() {
+    const opts = Object.keys(PLACES).map(k => '<option value="'+k+'"'+(state.airport===k?' selected':'')+'>'+PLACES[k].name+'</option>').join('');
+    return '<div class="kicker">Packet</div><h1>The hours nobody booked.</h1><p class="lead">You landed. The hotel will not take you yet. Three moves — bags, shower, sit.</p><label>Airport</label><select id="airport">'+opts+'</select><div class="row"><div><label>Landed</label><input id="land" type="datetime-local" value="'+esc(state.land)+'"></div><div><label>Hotel check-in</label><input id="checkin" type="datetime-local" value="'+esc(state.checkin)+'"></div></div><button class="btn btn-main" id="go">Show my gap</button>';
+  }
+  function renderGap() {
+    const place = PLACES[state.airport];
+    return '<div class="kicker">'+esc(place.name)+'</div><div class="clock"><div class="kicker">Until check-in</div><em>'+esc(fmt(remaining()))+'</em><p class="lead" style="margin:0">Do this in order. Do not wander with the suitcase.</p></div><div class="path">'+card('1 \u00b7 Bags', place.bags[0])+card('2 \u00b7 Shower', place.shower[0])+card('3 \u00b7 Sit', place.sit[0])+'</div><button class="btn btn-ghost" id="back">Change times</button><p class="hint">Starter inventory for MIA, MCO, and JFK.</p>';
+  }
+  function render() { document.getElementById('app').innerHTML = state.step === 'gap' ? renderGap() : renderSetup(); }
+  document.getElementById('app').addEventListener('click', function (e) {
+    if (e.target.id === 'go') {
+      state.airport = document.getElementById('airport').value;
+      state.land = document.getElementById('land').value;
+      state.checkin = document.getElementById('checkin').value;
+      state.step = 'gap'; render();
+    }
+    if (e.target.id === 'back') { state.step = 'setup'; render(); }
+  });
+  render();
+  </script>
 </body>
 </html>
