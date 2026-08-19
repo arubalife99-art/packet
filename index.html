@@ -9,59 +9,91 @@
     :root { color-scheme: dark; --bg:#070709; --card:#14141a; --line:rgba(255,255,255,.08); --text:#f4f4f6; --muted:#9a9aa6; --dim:#6c6c78; --mint:#5eead4; --gold:#f5d07a; --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px); font-family:"SF Pro Display",Inter,system-ui,-apple-system,sans-serif; }
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100dvh;color:var(--text);background:radial-gradient(900px 420px at 10% -10%,rgba(94,234,212,.12),transparent 50%),var(--bg)}
-    .app{max-width:430px;margin:0 auto;min-height:100dvh;padding:calc(16px + var(--safe-t)) 16px calc(24px + var(--safe-b))}
+    .app{max-width:430px;margin:0 auto;min-height:100dvh;padding:calc(16px + var(--safe-t)) 16px calc(28px + var(--safe-b))}
     .kicker{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mint);font-weight:700}
-    h1{font-size:1.7rem;letter-spacing:-.04em;margin:8px 0 6px}
-    .lead{color:var(--muted);font-size:.95rem;line-height:1.45;margin-bottom:22px}
-    label{display:block;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:14px 0 6px}
-    input,select{width:100%;background:#101014;border:1px solid var(--line);border-radius:14px;padding:13px 14px;color:var(--text);font:inherit}
+    h1{font-size:1.65rem;letter-spacing:-.04em;margin:8px 0 6px}
+    .lead{color:var(--muted);font-size:.92rem;line-height:1.45;margin-bottom:18px}
+    label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:12px 0 6px}
+    input,select{width:100%;background:#101014;border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--text);font:inherit}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .btn{width:100%;height:52px;border:0;border-radius:16px;font:inherit;font-weight:700;margin-top:20px}
+    .btn{width:100%;height:50px;border:0;border-radius:16px;font:inherit;font-weight:700;margin-top:16px}
     .btn-main{background:linear-gradient(180deg,#5eead4,#2dd4bf);color:#042f2e}
     .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--muted);margin-top:10px}
-    .clock{border-radius:24px;padding:20px;background:linear-gradient(165deg,#18242c,#101014);border:1px solid rgba(94,234,212,.2);margin-bottom:16px}
-    .clock em{font-style:normal;font-size:2.4rem;letter-spacing:-.05em;display:block;margin:6px 0 4px}
+    .clock{border-radius:22px;padding:18px;background:linear-gradient(165deg,#18242c,#101014);border:1px solid rgba(94,234,212,.2);margin-bottom:14px}
+    .clock em{font-style:normal;font-size:2.2rem;letter-spacing:-.05em;display:block;margin:6px 0 4px}
     .path{display:flex;flex-direction:column;gap:10px}
     .card{text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;color:inherit;text-decoration:none;display:block}
-    .card .step{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700}
-    .card h3{font-size:1.05rem;margin:6px 0 4px}
-    .card p{color:var(--muted);font-size:.84rem}
-    .meta{display:flex;gap:10px;margin-top:10px;font-size:.78rem;color:var(--dim)}
+    .card .step{font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:700}
+    .card h3{font-size:1.02rem;margin:6px 0 4px}
+    .card p{color:var(--muted);font-size:.82rem}
+    .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:.76rem;color:var(--dim)}
     .price{color:var(--mint);font-weight:700}
-    .hint{margin-top:16px;color:var(--dim);font-size:.8rem}
+    .pill{display:inline-block;margin-top:8px;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+    .hint{margin-top:14px;color:var(--dim);font-size:.78rem;line-height:1.4}
   </style>
 </head>
 <body>
 <div class="app" id="app"></div>
 <script>
+const REF = 'packet';
+function bounce(code){ return 'https://www.bounce.com/luggagestorage/' + code.toLowerCase() + '?ref=' + REF; }
+function hotels(q){ return 'https://www.hotels.com/Hotel-Search?destination=' + encodeURIComponent(q) + '&ref=' + REF; }
+function maps(q){ return 'https://maps.apple.com/?q=' + encodeURIComponent(q); }
 const PLACES = {
-  MIA: { name:'Miami (MIA)', bags:[{title:'Bounce locker',mins:12,price:'$8+',note:'Drop bags before you leave the terminal.',url:'https://bounce.com/luggagestorage'}], shower:[{title:'Lounge shower',mins:18,price:'Day pass',note:'Fastest wash after a redeye.',url:'https://www.miami-airport.com'},{title:'Day room near MIA',mins:20,price:'$60-90',note:'Sleep + shower if the gap is long.',url:'https://www.hotels.com'}], sit:[{title:'Quiet gate or lounge',mins:8,price:'Pass',note:'Stay inside if you are exhausted.',url:'https://www.miami-airport.com'},{title:'Coral Gables cafe',mins:25,price:'$',note:'Only after bags are stashed.',url:'https://maps.apple.com/?q=Coral%20Gables%20cafes'}] },
-  MCO: { name:'Orlando (MCO)', bags:[{title:'Luggage storage',mins:10,price:'$7+',note:'Drop bags before you leave.',url:'https://www.orlandoairports.net'}], shower:[{title:'Terminal lounge shower',mins:15,price:'Day pass',note:'Stay on airport grounds.',url:'https://www.orlandoairports.net'},{title:'Airport hotel day room',mins:10,price:'$60-90',note:'Better than a chair for a long gap.',url:'https://www.hotels.com'}], sit:[{title:'Hyatt Regency lobby',mins:8,price:'Free',note:'AC, outlets, bathrooms.',url:'https://maps.apple.com/?q=Hyatt%20Regency%20Orlando%20Airport'},{title:'Day room',mins:10,price:'$60-90',note:'If the gap is long, pay to sleep.',url:'https://www.hotels.com'}] },
-  JFK: { name:'New York (JFK)', bags:[{title:'Locker / Bounce',mins:15,price:'$10+',note:'Do not take bags into the city on a short gap.',url:'https://www.jfkairport.com'}], shower:[{title:'TWA Hotel shower',mins:12,price:'$',note:'Close if you landed T4/T5.',url:'https://www.twahotel.com'},{title:'TWA Hotel day room',mins:12,price:'$',note:'The actual move on a long JFK gap.',url:'https://www.twahotel.com'}], sit:[{title:'TWA lobby',mins:12,price:'Free',note:'Stay on airport grounds.',url:'https://www.twahotel.com'},{title:'TWA day room',mins:12,price:'$',note:'Sleep instead of going into the city.',url:'https://www.twahotel.com'}] }
+  MIA:{ name:'Miami (MIA)', terminals:['D','E','F','G','H','J'], guess:{AA:'D',B6:'C',DL:'H',UA:'J'},
+    bags:t=>[{title:'Bounce locker \u00b7 T'+t,mins:t==='D'?8:12,price:'$8+',note:'Drop before you leave the terminal.',url:bounce('MIA')}],
+    shower:t=>[{title:'Lounge shower \u00b7 T'+t,mins:15,price:'Day pass',note:'Fastest wash after a redeye.',url:'https://www.miami-airport.com'},{title:'Day room near MIA',mins:20,price:'$60-90',note:'Sleep + shower on a long gap.',url:hotels('Miami International Airport')}],
+    sit:t=>[{title:'Quiet gate \u00b7 T'+t,mins:5,price:'Free',note:'Stay airside if you are wrecked.',url:maps('Miami airport terminal '+t)},{title:'Coral Gables cafe',mins:25,price:'$',note:'Only after bags are stashed.',url:maps('Coral Gables cafes')}] },
+  MCO:{ name:'Orlando (MCO)', terminals:['A','B','C'], guess:{WN:'A',B6:'C',F9:'C',NK:'A'},
+    bags:t=>[{title:'Luggage storage \u00b7 T'+t,mins:10,price:'$7+',note:'Do not take bags off-airport for a short gap.',url:bounce('MCO')}],
+    shower:t=>[{title:'Lounge shower \u00b7 T'+t,mins:14,price:'Day pass',note:'Stay on grounds.',url:'https://www.orlandoairports.net'},{title:'Airport day room',mins:10,price:'$60-90',note:'Better than a chair.',url:hotels('Orlando International Airport')}],
+    sit:t=>[{title:'Hyatt Regency lobby',mins:8,price:'Free',note:'AC, outlets, bathrooms.',url:maps('Hyatt Regency Orlando Airport')},{title:'Airport hotel day room',mins:10,price:'$60-90',note:'Long gap: pay to sleep.',url:hotels('Orlando International Airport')}] },
+  JFK:{ name:'New York (JFK)', terminals:['1','4','5','7','8'], guess:{AA:'8',B6:'5',DL:'4',BA:'7',VS:'4'},
+    bags:t=>[{title:'Locker / Bounce \u00b7 T'+t,mins:12,price:'$10+',note:'Do not haul bags into the city on a short gap.',url:bounce('JFK')}],
+    shower:t=>[{title:(t==='5'||t==='4')?'TWA Hotel shower':'Lounge shower \u00b7 T'+t,mins:12,price:'$',note:t==='5'?'Next to T5.':'Closest wash to this terminal.',url:'https://www.twahotel.com'},{title:'TWA Hotel day room',mins:12,price:'$',note:'The JFK long-gap move.',url:'https://www.twahotel.com'}],
+    sit:t=>[{title:'TWA lobby',mins:12,price:'Free',note:'Best sit on the property.',url:'https://www.twahotel.com'},{title:'TWA day room',mins:12,price:'$',note:'Sleep instead of Manhattan.',url:'https://www.twahotel.com'}] },
+  ATL:{ name:'Atlanta (ATL)', terminals:['T','A','B','C','D','E','F'], guess:{DL:'F',WN:'C',AA:'T',UA:'T'},
+    bags:t=>[{title:'Storage \u00b7 T'+t,mins:10,price:'$8+',note:'Plane train first, then drop.',url:bounce('ATL')}],
+    shower:t=>[{title:'Club shower',mins:16,price:'Day pass',note:'ATL is built for this.',url:'https://www.atl.com'},{title:'Airport hotel day room',mins:15,price:'$70+',note:'Long connection or early land.',url:hotels('Hartsfield-Jackson Atlanta')}],
+    sit:t=>[{title:'Atrium / gate \u00b7 T'+t,mins:6,price:'Free',note:'Food and outlets in the center.',url:maps('ATL airport atrium')},{title:'Airport hotel',mins:15,price:'$',note:'Leave the concourse if you have 6h+.',url:hotels('Hartsfield-Jackson Atlanta')}] },
+  LAX:{ name:'Los Angeles (LAX)', terminals:['1','2','3','4','5','6','7','8','B'], guess:{WN:'1',DL:'3',AA:'4',UA:'7',AS:'6',B6:'5'},
+    bags:t=>[{title:'Bounce / locker \u00b7 T'+t,mins:14,price:'$10+',note:'LAX walks are long. Drop first.',url:bounce('LAX')}],
+    shower:t=>[{title:'Lounge shower \u00b7 T'+t,mins:18,price:'Day pass',note:'Do not go to Santa Monica for a 3h gap.',url:'https://www.flylax.com'},{title:'Airport day room',mins:15,price:'$80+',note:'Long gap only.',url:hotels('LAX airport hotel')}],
+    sit:t=>[{title:'Terminal sit \u00b7 T'+t,mins:6,price:'Free',note:'Stay put under 3 hours.',url:maps('LAX terminal '+t)},{title:'Airport hotel lobby',mins:12,price:'Free',note:'After bags are gone.',url:hotels('LAX airport hotel')}] },
+  ORD:{ name:'Chicago (ORD)', terminals:['1','2','3','5'], guess:{UA:'1',AA:'3',F9:'5',NK:'5',B6:'5'},
+    bags:t=>[{title:'Storage \u00b7 T'+t,mins:11,price:'$9+',note:'T5 is a hike from 1-3.',url:bounce('ORD')}],
+    shower:t=>[{title:'Club shower \u00b7 T'+t,mins:14,price:'Day pass',note:'United T1 / American T3.',url:'https://www.flychicago.com'},{title:'Hilton / airport day room',mins:12,price:'$70+',note:'Attached hotels help here.',url:hotels('OHare airport hotel')}],
+    sit:t=>[{title:'Gate sit \u00b7 T'+t,mins:5,price:'Free',note:'Fine for a short gap.',url:maps('ORD terminal '+t)},{title:'Hilton ORD',mins:12,price:'$',note:'Long gap: leave the sterile area.',url:hotels('Hilton Chicago OHare')}] },
+  DFW:{ name:'Dallas (DFW)', terminals:['A','B','C','D','E'], guess:{AA:'A',DL:'E',UA:'E',WN:'E'},
+    bags:t=>[{title:'Storage \u00b7 T'+t,mins:10,price:'$8+',note:'Skylink between terminals.',url:bounce('DFW')}],
+    shower:t=>[{title:'Admirals / lounge shower',mins:14,price:'Day pass',note:'AA owns this airport.',url:'https://www.dfwairport.com'},{title:'Grand Hyatt DFW day room',mins:8,price:'$',note:'Inside Terminal D.',url:hotels('Grand Hyatt DFW')}],
+    sit:t=>[{title:'Gate sit \u00b7 T'+t,mins:5,price:'Free',note:'Short gap: do not Skylink around.',url:maps('DFW terminal '+t)},{title:'Grand Hyatt lobby',mins:8,price:'Free',note:'Terminal D. Worth it if you have hours.',url:maps('Grand Hyatt DFW')}] }
 };
-const state = { step:'setup', airport:'MIA', land:defaultLand(), checkin:defaultCheckin() };
+const state = { step:'setup', airport:'MIA', terminal:'D', flight:'', land:defaultLand(), checkin:defaultCheckin() };
 function defaultLand(){ const d=new Date(); d.setMinutes(0,0,0); return toLocal(d); }
 function defaultCheckin(){ const d=new Date(); d.setHours(15,0,0,0); if(d<new Date()) d.setDate(d.getDate()+1); return toLocal(d); }
 function toLocal(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
 function esc(s){ return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"'); }
+function airlineCode(flight){ const m=String(flight||'').toUpperCase().replace(/\s+/g,'').match(/^([A-Z]{2})/); return m?m[1]:''; }
+function guessTerminal(code, flight){ const place=PLACES[code]; const al=airlineCode(flight); if(al && place.guess[al]) return place.guess[al]; return place.terminals[0]; }
 function remaining(){ const a=Date.parse(state.land), b=Date.parse(state.checkin); if(isNaN(a)||isNaN(b)) return null; return b-Math.max(Date.now(),a); }
 function fmt(ms){ if(ms==null) return '\u2014'; if(ms<=0) return 'You can check in now'; return Math.floor(ms/3600000)+'h '+Math.floor((ms%3600000)/60000)+'m'; }
 function hoursLeft(ms){ return (ms||0)/3600000; }
-function buildPath(place, ms){
-  const h=hoursLeft(ms);
-  if(ms!=null && ms<=0) return { line:'Check-in is open. Go to the hotel.', items:[{step:'Now',title:'Go check in',note:'The gap is over.',mins:0,price:'',url:''}] };
-  if(h<2.5) return { line:'Short gap. Stay in the airport. Do not leave with bags.', items:[{step:'1 \u00b7 Stay',title:'Keep the bags with you',note:'Not enough time for a locker round-trip.',mins:0,price:'Free',url:''}, Object.assign({step:'2 \u00b7 Sit'}, place.sit[0])] };
-  if(h<5.5) return { line:'Do this in order. Do not wander with the suitcase.', items:[Object.assign({step:'1 \u00b7 Bags'}, place.bags[0]), Object.assign({step:'2 \u00b7 Shower'}, place.shower[0]), Object.assign({step:'3 \u00b7 Sit'}, place.sit[0])] };
-  return { line:'Long gap. Stash bags, then a day room \u2014 not a gate chair.', items:[Object.assign({step:'1 \u00b7 Bags'}, place.bags[0]), Object.assign({step:'2 \u00b7 Reset'}, place.shower[1]||place.shower[0]), Object.assign({step:'3 \u00b7 Sit'}, place.sit[1]||place.sit[0])] };
+function buildPath(place, term, ms){
+  const bags=place.bags(term), shower=place.shower(term), sit=place.sit(term), h=hoursLeft(ms);
+  if(ms!=null && ms<=0) return {line:'Check-in is open. Go to the hotel.', items:[{step:'Now',title:'Go check in',note:'The gap is over.',mins:0,price:'',url:''}]};
+  if(h<2.5) return {line:'Short gap. Stay in T'+term+'. Do not leave with bags.', items:[{step:'1 \u00b7 Stay',title:'Keep the bags',note:'Not enough time for a locker round-trip.',mins:0,price:'Free',url:''}, Object.assign({step:'2 \u00b7 Sit'}, sit[0])]};
+  if(h<5.5) return {line:'T'+term+' \u00b7 bags, then a shower, then sit.', items:[Object.assign({step:'1 \u00b7 Bags'}, bags[0]), Object.assign({step:'2 \u00b7 Shower'}, shower[0]), Object.assign({step:'3 \u00b7 Sit'}, sit[0])]};
+  return {line:'Long gap out of T'+term+'. Day room beats a gate chair.', items:[Object.assign({step:'1 \u00b7 Bags'}, bags[0]), Object.assign({step:'2 \u00b7 Reset'}, shower[1]||shower[0]), Object.assign({step:'3 \u00b7 Sit'}, sit[1]||sit[0])]};
 }
-function card(item){ const inner='<div class="step">'+esc(item.step)+'</div><h3>'+esc(item.title)+'</h3><p>'+esc(item.note)+'</p><div class="meta"><span>'+item.mins+' min</span><span class="price">'+esc(item.price)+'</span></div>'; return item.url ? '<a class="card" href="'+esc(item.url)+'" target="_blank">'+inner+'</a>' : '<div class="card">'+inner+'</div>'; }
-function renderSetup(){ const opts=Object.keys(PLACES).map(k=>'<option value="'+k+'"'+(state.airport===k?' selected':'')+'>'+PLACES[k].name+'</option>').join(''); return '<div class="kicker">Packet</div><h1>The hours nobody booked.</h1><p class="lead">You landed. The hotel will not take you yet.</p><label>Airport</label><select id="airport">'+opts+'</select><div class="row"><div><label>Landed</label><input id="land" type="datetime-local" value="'+esc(state.land)+'"></div><div><label>Hotel check-in</label><input id="checkin" type="datetime-local" value="'+esc(state.checkin)+'"></div></div><button class="btn btn-main" id="go">Show my gap</button>'; }
-function renderGap(){ const place=PLACES[state.airport], ms=remaining(), path=buildPath(place,ms); return '<div class="kicker">'+esc(place.name)+'</div><div class="clock"><div class="kicker">Until check-in</div><em>'+esc(fmt(ms))+'</em><p class="lead" style="margin:0">'+esc(path.line)+'</p></div><div class="path">'+path.items.map(card).join('')+'</div><button class="btn btn-ghost" id="back">Change times</button><p class="hint">Under 2.5h stay put. 2.5-5.5h bags + shower. Longer: day room.</p>'; }
+function card(item){ const inner='<div class="step">'+esc(item.step)+'</div><h3>'+esc(item.title)+'</h3><p>'+esc(item.note)+'</p><div class="meta"><span>'+(item.mins||0)+' min</span><span class="price">'+esc(item.price)+'</span></div>'+(item.url?'<div class="pill">Book via Packet</div>':''); return item.url?'<a class="card" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+inner+'</a>':'<div class="card">'+inner+'</div>'; }
+function termOptions(){ return PLACES[state.airport].terminals.map(t=>'<option value="'+t+'"'+(state.terminal===t?' selected':'')+'>Terminal '+t+'</option>').join(''); }
+function renderSetup(){ const opts=Object.keys(PLACES).map(k=>'<option value="'+k+'"'+(state.airport===k?' selected':'')+'>'+PLACES[k].name+'</option>').join(''); return '<div class="kicker">Packet</div><h1>The hours nobody booked.</h1><p class="lead">Airport, terminal, landing, check-in. Flight number is optional — it picks a terminal.</p><label>Airport</label><select id="airport">'+opts+'</select><label>Flight (optional)</label><input id="flight" placeholder="AA 1420" value="'+esc(state.flight)+'"><label>Terminal</label><select id="terminal">'+termOptions()+'</select><div class="row"><div><label>Landed</label><input id="land" type="datetime-local" value="'+esc(state.land)+'"></div><div><label>Hotel check-in</label><input id="checkin" type="datetime-local" value="'+esc(state.checkin)+'"></div></div><button class="btn btn-main" id="go">Show my gap</button><p class="hint">Locker and hotel links are affiliate. Live prices need Bounce / hotel APIs.</p>'; }
+function renderGap(){ const place=PLACES[state.airport], ms=remaining(), path=buildPath(place,state.terminal,ms), flight=state.flight?' \u00b7 '+state.flight.toUpperCase():''; return '<div class="kicker">'+esc(place.name)+' \u00b7 T'+esc(state.terminal)+esc(flight)+'</div><div class="clock"><div class="kicker">Until check-in</div><em>'+esc(fmt(ms))+'</em><p class="lead" style="margin:0">'+esc(path.line)+'</p></div><div class="path">'+path.items.map(card).join('')+'</div><button class="btn btn-ghost" id="back">Change details</button><p class="hint">Under 2.5h stay put. 2.5–5.5h bags + shower. Longer: day room. Packet earns if you book a locker or room.</p>'; }
+function readSetup(){ const a=document.getElementById('airport'), f=document.getElementById('flight'), t=document.getElementById('terminal'), l=document.getElementById('land'), c=document.getElementById('checkin'); if(a) state.airport=a.value; if(f) state.flight=f.value; if(t) state.terminal=t.value; if(l) state.land=l.value; if(c) state.checkin=c.value; }
 function render(){ document.getElementById('app').innerHTML = state.step==='gap' ? renderGap() : renderSetup(); }
-document.getElementById('app').addEventListener('click', function(e){
-  if(e.target.id==='go'){ state.airport=document.getElementById('airport').value; state.land=document.getElementById('land').value; state.checkin=document.getElementById('checkin').value; state.step='gap'; render(); }
-  if(e.target.id==='back'){ state.step='setup'; render(); }
-});
+document.getElementById('app').addEventListener('change', function(e){ if(e.target.id==='airport'){ readSetup(); state.terminal=guessTerminal(state.airport,state.flight); render(); } if(e.target.id==='flight'){ readSetup(); const g=guessTerminal(state.airport,state.flight); if(g){ state.terminal=g; render(); } } });
+document.getElementById('app').addEventListener('click', function(e){ if(e.target.id==='go'){ readSetup(); state.step='gap'; render(); } if(e.target.id==='back'){ state.step='setup'; render(); } });
 render();
 </script>
 </body>
