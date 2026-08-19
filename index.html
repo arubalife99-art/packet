@@ -35,9 +35,10 @@
 <body>
 <div class="app" id="app"></div>
 <script>
-const REF = 'packet';
-function bounce(code){ return 'https://www.bounce.com/luggagestorage/' + code.toLowerCase() + '?ref=' + REF; }
-function hotels(q){ return 'https://www.hotels.com/Hotel-Search?destination=' + encodeURIComponent(q) + '&ref=' + REF; }
+function keys(){ try { return JSON.parse(localStorage.getItem('packet-keys') || '{}'); } catch(e){ return {}; } }
+function saveKeys(k){ localStorage.setItem('packet-keys', JSON.stringify(k)); }
+function bounce(code){ const id = keys().bounce || 'packet'; return 'https://www.bounce.com/luggagestorage/' + code.toLowerCase() + '?ref=' + encodeURIComponent(id); }
+function hotels(q){ const id = keys().hotels || 'packet'; return 'https://www.hotels.com/Hotel-Search?destination=' + encodeURIComponent(q) + '&ref=' + encodeURIComponent(id); }
 function maps(q){ return 'https://maps.apple.com/?q=' + encodeURIComponent(q); }
 const PLACES = {
   MIA:{ name:'Miami (MIA)', terminals:['D','E','F','G','H','J'], guess:{AA:'D',B6:'C',DL:'H',UA:'J'},
@@ -69,13 +70,63 @@ const PLACES = {
     shower:t=>[{title:'Admirals / lounge shower',mins:14,price:'Day pass',note:'AA owns this airport.',url:'https://www.dfwairport.com'},{title:'Grand Hyatt DFW day room',mins:8,price:'$',note:'Inside Terminal D.',url:hotels('Grand Hyatt DFW')}],
     sit:t=>[{title:'Gate sit \u00b7 T'+t,mins:5,price:'Free',note:'Short gap: do not Skylink around.',url:maps('DFW terminal '+t)},{title:'Grand Hyatt lobby',mins:8,price:'Free',note:'Terminal D. Worth it if you have hours.',url:maps('Grand Hyatt DFW')}] }
 };
-const state = { step:'setup', airport:'MIA', terminal:'D', flight:'', land:defaultLand(), checkin:defaultCheckin() };
+const state = { step:'setup', airport:'MIA', terminal:'D', flight:'', land:defaultLand(), checkin:defaultCheckin(), toast:'', looking:false };
 function defaultLand(){ const d=new Date(); d.setMinutes(0,0,0); return toLocal(d); }
 function defaultCheckin(){ const d=new Date(); d.setHours(15,0,0,0); if(d<new Date()) d.setDate(d.getDate()+1); return toLocal(d); }
 function toLocal(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
 function esc(s){ return String(s||'').replace(/&/g,'&').replace(/</g,'<').replace(/"/g,'"'); }
 function airlineCode(flight){ const m=String(flight||'').toUpperCase().replace(/\s+/g,'').match(/^([A-Z]{2})/); return m?m[1]:''; }
 function guessTerminal(code, flight){ const place=PLACES[code]; const al=airlineCode(flight); if(al && place.guess[al]) return place.guess[al]; return place.terminals[0]; }
+function flightIata(flight){ const m=String(flight||'').toUpperCase().replace(/\s+/g,'').match(/^([A-Z]{2})(\d{1,4})$/); return m?m[1]+m[2]:''; }
+function toLocalFromIso(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return ''; return toLocal(d); }
+function jsonp(url){
+  return new Promise(function(resolve, reject){
+    const cb='pkt'+Date.now();
+    const t=setTimeout(function(){ cleanup(); reject(new Error('timeout')); }, 12000);
+    function cleanup(){ clearTimeout(t); try{ delete window[cb]; }catch(e){} if(script.parentNode) script.parentNode.removeChild(script); }
+    window[cb]=function(data){ cleanup(); resolve(data); };
+    const script=document.createElement('script');
+    script.src=url+(url.indexOf('?')>=0?'&':'?')+'callback='+cb;
+    script.onerror=function(){ cleanup(); reject(new Error('network')); };
+    document.body.appendChild(script);
+  });
+}
+function applyFlight(row){
+  if(!row) return 'No flight found';
+  const arr=row.arrival||{};
+  const iata=(arr.iata||'').toUpperCase();
+  if(iata && PLACES[iata]){
+    state.airport=iata;
+    if(arr.terminal && PLACES[iata].terminals.indexOf(String(arr.terminal))>=0) state.terminal=String(arr.terminal);
+    else state.terminal=guessTerminal(iata, state.flight);
+  } else if(arr.terminal) state.terminal=String(arr.terminal);
+  const local=toLocalFromIso(arr.estimated||arr.actual||arr.scheduled);
+  if(local) state.land=local;
+  const bits=[];
+  if(iata) bits.push(iata);
+  if(arr.terminal) bits.push('T'+arr.terminal);
+  if(arr.delay) bits.push(arr.delay+'m late');
+  return bits.length ? 'Updated from flight \u00b7 '+bits.join(' \u00b7 ') : 'Flight found, little arrival data';
+}
+async function lookupFlight(){
+  readSetup();
+  const iata=flightIata(state.flight);
+  const key=keys().aviationstack;
+  if(!iata){ state.toast='Enter a flight like AA 1420'; render(); return; }
+  if(!key){ state.toast='Add a free Aviationstack key in Settings'; state.step='settings'; render(); return; }
+  state.looking=true; state.toast='Looking up '+iata+'\u2026'; render();
+  try {
+    const url='https://api.aviationstack.com/v1/flights?access_key='+encodeURIComponent(key)+'&flight_iata='+encodeURIComponent(iata);
+    const data=await jsonp(url);
+    if(data && data.error) throw new Error(data.error.message||'API error');
+    const row=(data && (data.data||data.results)||[])[0];
+    state.toast=applyFlight(row);
+  } catch(e) {
+    state.toast='Lookup failed. Key or CORS. Terminal guess still works.';
+    state.terminal=guessTerminal(state.airport, state.flight);
+  }
+  state.looking=false; render();
+}
 function remaining(){ const a=Date.parse(state.land), b=Date.parse(state.checkin); if(isNaN(a)||isNaN(b)) return null; return b-Math.max(Date.now(),a); }
 function fmt(ms){ if(ms==null) return '\u2014'; if(ms<=0) return 'You can check in now'; return Math.floor(ms/3600000)+'h '+Math.floor((ms%3600000)/60000)+'m'; }
 function hoursLeft(ms){ return (ms||0)/3600000; }
@@ -88,12 +139,26 @@ function buildPath(place, term, ms){
 }
 function card(item){ const inner='<div class="step">'+esc(item.step)+'</div><h3>'+esc(item.title)+'</h3><p>'+esc(item.note)+'</p><div class="meta"><span>'+(item.mins||0)+' min</span><span class="price">'+esc(item.price)+'</span></div>'+(item.url?'<div class="pill">Book via Packet</div>':''); return item.url?'<a class="card" href="'+esc(item.url)+'" target="_blank" rel="noopener">'+inner+'</a>':'<div class="card">'+inner+'</div>'; }
 function termOptions(){ return PLACES[state.airport].terminals.map(t=>'<option value="'+t+'"'+(state.terminal===t?' selected':'')+'>Terminal '+t+'</option>').join(''); }
-function renderSetup(){ const opts=Object.keys(PLACES).map(k=>'<option value="'+k+'"'+(state.airport===k?' selected':'')+'>'+PLACES[k].name+'</option>').join(''); return '<div class="kicker">Packet</div><h1>The hours nobody booked.</h1><p class="lead">Airport, terminal, landing, check-in. Flight number is optional — it picks a terminal.</p><label>Airport</label><select id="airport">'+opts+'</select><label>Flight (optional)</label><input id="flight" placeholder="AA 1420" value="'+esc(state.flight)+'"><label>Terminal</label><select id="terminal">'+termOptions()+'</select><div class="row"><div><label>Landed</label><input id="land" type="datetime-local" value="'+esc(state.land)+'"></div><div><label>Hotel check-in</label><input id="checkin" type="datetime-local" value="'+esc(state.checkin)+'"></div></div><button class="btn btn-main" id="go">Show my gap</button><p class="hint">Locker and hotel links are affiliate. Live prices need Bounce / hotel APIs.</p>'; }
-function renderGap(){ const place=PLACES[state.airport], ms=remaining(), path=buildPath(place,state.terminal,ms), flight=state.flight?' \u00b7 '+state.flight.toUpperCase():''; return '<div class="kicker">'+esc(place.name)+' \u00b7 T'+esc(state.terminal)+esc(flight)+'</div><div class="clock"><div class="kicker">Until check-in</div><em>'+esc(fmt(ms))+'</em><p class="lead" style="margin:0">'+esc(path.line)+'</p></div><div class="path">'+path.items.map(card).join('')+'</div><button class="btn btn-ghost" id="back">Change details</button><p class="hint">Under 2.5h stay put. 2.5–5.5h bags + shower. Longer: day room. Packet earns if you book a locker or room.</p>'; }
+function toastHtml(){ return state.toast ? '<p class="hint" style="color:var(--gold)">'+esc(state.toast)+'</p>' : ''; }
+function renderSetup(){ const opts=Object.keys(PLACES).map(k=>'<option value="'+k+'"'+(state.airport===k?' selected':'')+'>'+PLACES[k].name+'</option>').join(''); return '<div class="kicker">Packet</div><h1>The hours nobody booked.</h1><p class="lead">Flight lookup fills landing time and terminal when you add a key.</p><label>Airport</label><select id="airport">'+opts+'</select><label>Flight</label><input id="flight" placeholder="AA 1420" value="'+esc(state.flight)+'"><button class="btn btn-ghost" id="lookup" style="margin-top:8px">'+(state.looking?'Looking\u2026':'Lookup flight')+'</button><label>Terminal</label><select id="terminal">'+termOptions()+'</select><div class="row"><div><label>Landed</label><input id="land" type="datetime-local" value="'+esc(state.land)+'"></div><div><label>Hotel check-in</label><input id="checkin" type="datetime-local" value="'+esc(state.checkin)+'"></div></div>'+toastHtml()+'<button class="btn btn-main" id="go">Show my gap</button><button class="btn btn-ghost" id="settings">API keys</button><p class="hint">Bounce and Hotels have no public stock API. Your affiliate IDs go on the book links.</p>'; }
+function renderSettings(){ const k=keys(); return '<div class="kicker">Packet</div><h1>Keys</h1><p class="lead">Free Aviationstack key fills landing time. Affiliate IDs make locker/hotel taps pay you.</p><label>Aviationstack key</label><input id="k-air" value="'+esc(k.aviationstack||'')+'" placeholder="from aviationstack.com"><label>Bounce ref</label><input id="k-bounce" value="'+esc(k.bounce||'')+'" placeholder="packet"><label>Hotels ref</label><input id="k-hotels" value="'+esc(k.hotels||'')+'" placeholder="packet">'+toastHtml()+'<button class="btn btn-main" id="save-keys">Save</button><button class="btn btn-ghost" id="back">Back</button><p class="hint">500 free lookups/month at aviationstack.com. Bounce/Hotels partner programs give you the ref IDs.</p>'; }
+function renderGap(){ const place=PLACES[state.airport], ms=remaining(), path=buildPath(place,state.terminal,ms), flight=state.flight?' \u00b7 '+state.flight.toUpperCase():''; return '<div class="kicker">'+esc(place.name)+' \u00b7 T'+esc(state.terminal)+esc(flight)+'</div><div class="clock"><div class="kicker">Until check-in</div><em>'+esc(fmt(ms))+'</em><p class="lead" style="margin:0">'+esc(path.line)+'</p></div><div class="path">'+path.items.map(card).join('')+'</div><button class="btn btn-ghost" id="back">Change details</button><p class="hint">Packet earns if you book a locker or room.</p>'; }
 function readSetup(){ const a=document.getElementById('airport'), f=document.getElementById('flight'), t=document.getElementById('terminal'), l=document.getElementById('land'), c=document.getElementById('checkin'); if(a) state.airport=a.value; if(f) state.flight=f.value; if(t) state.terminal=t.value; if(l) state.land=l.value; if(c) state.checkin=c.value; }
-function render(){ document.getElementById('app').innerHTML = state.step==='gap' ? renderGap() : renderSetup(); }
-document.getElementById('app').addEventListener('change', function(e){ if(e.target.id==='airport'){ readSetup(); state.terminal=guessTerminal(state.airport,state.flight); render(); } if(e.target.id==='flight'){ readSetup(); const g=guessTerminal(state.airport,state.flight); if(g){ state.terminal=g; render(); } } });
-document.getElementById('app').addEventListener('click', function(e){ if(e.target.id==='go'){ readSetup(); state.step='gap'; render(); } if(e.target.id==='back'){ state.step='setup'; render(); } });
+function render(){ document.getElementById('app').innerHTML = state.step==='gap' ? renderGap() : state.step==='settings' ? renderSettings() : renderSetup(); }
+document.getElementById('app').addEventListener('change', function(e){
+  if(e.target.id==='airport'){ readSetup(); state.terminal=guessTerminal(state.airport,state.flight); render(); }
+  if(e.target.id==='flight'){ readSetup(); const g=guessTerminal(state.airport,state.flight); if(g){ state.terminal=g; render(); } }
+});
+document.getElementById('app').addEventListener('click', function(e){
+  if(e.target.id==='go'){ readSetup(); state.step='gap'; render(); }
+  if(e.target.id==='back'){ state.step='setup'; render(); }
+  if(e.target.id==='settings'){ state.step='settings'; render(); }
+  if(e.target.id==='lookup'){ if(!state.looking) lookupFlight(); }
+  if(e.target.id==='save-keys'){
+    saveKeys({ aviationstack:(document.getElementById('k-air')||{}).value||'', bounce:(document.getElementById('k-bounce')||{}).value||'', hotels:(document.getElementById('k-hotels')||{}).value||'' });
+    state.toast='Saved on this phone'; state.step='setup'; render();
+  }
+});
 render();
 </script>
 </body>
